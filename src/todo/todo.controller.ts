@@ -1,4 +1,4 @@
-import { Controller, Get , Post , Put , Patch, Delete, Req, Res, Body, Param } from '@nestjs/common';
+import { Controller, Get , Post , Put , Patch, Delete, Req, Res, Body, Param, NotFoundException } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { Todo } from './Entities/todo.entity';
 import { Addtodo } from './dto/add-todo.dto';
@@ -42,9 +42,11 @@ getTodoById(
     @Param('id') id ,
 ){
     const todo = this.todos.find((actualTodo :Todo) => actualTodo.id === +id)
-    if(todo)
-     return todo ; 
-    return("not existed")
+    if(!todo)
+
+     throw new NotFoundException ("The id does not exist.");
+
+    return todo ; 
 }
 
 @Post('/dto')
@@ -76,13 +78,14 @@ DeleteTodo(
     const idToDelete = Number(mesParames.id);
 
     const todoExists = this.todos.some(todo => todo.id === idToDelete);
+    //ou bien .findindex 
+    //splice(index , number d'oebjet a supprimer)
 
     if (!todoExists) {
-        return `The id ${mesParames.id} concerned does not exist.`;
+        throw new NotFoundException (`The id ${mesParames.id} concerned does not exist.`);
     }
 
     this.todos = this.todos.filter(todo => todo.id !== idToDelete);
-
     return `The todo d'id ${mesParames.id} is deleted successfully `;
 }
 
@@ -104,6 +107,29 @@ DeleteTodo(
         todo.description= mesParames.newdescription ;
         this.todos.push(todo) ;
         return `the todo d'id ${mesParames.id} is modified successfully !`
+    }
+
+
+    @Put('/:id')
+    ModifyTodo(
+        @Param() mesParames , 
+        @Body() newtodo: Partial<Todo> , 
+    ){
+        const idToModify = Number(mesParames.id)
+
+        const todo = this.getTodoById(idToModify)
+        if (!todo) {
+            // Handle the case when todo is not found, perhaps throw an exception
+            throw new NotFoundException(`Todo with ID ${idToModify} not found.`);
+        }
+
+        todo.description= newtodo.description? newtodo.description :todo.description ;
+        todo.name = newtodo.name? newtodo.name :todo.name ;
+
+        return todo ; 
+
+
+        
     }
 
 }
